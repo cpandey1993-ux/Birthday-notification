@@ -34,7 +34,7 @@ if ([string]::IsNullOrWhiteSpace($webhook)) {
 # ------------------------------------------
 # 3. Birthday CSV
 # ------------------------------------------
-$csvPath = Join-Path $env:System_DefaultWorkingDirectory "scripts\birthdays.csv"
+$csvPath = Join-Path $env:System_DefaultWorkingDirectory "Birthday_notification.csv"
 
 Write-Output "=========================================="
 Write-Output "Birthday Notification Started"
