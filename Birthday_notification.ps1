@@ -1,5 +1,5 @@
 # ==========================================
-# Birthday Notification Automation
+# Birthday Notification Automation (Fixed)
 # Gmail + Slack
 # ==========================================
 
@@ -23,18 +23,18 @@ $securePassword = ConvertTo-SecureString $appPassword -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential($from, $securePassword)
 
 # ------------------------------------------
-# 2. Slack Webhook (यहाँ आपका URL पूरी तरह हार्डकोडेड है)
+# 2. Slack Webhook (यहाँ आपका असली URL पूरी तरह सेट है)
 # ------------------------------------------
-$webhook = "https://slack.com"
+$webhook = "https://hooks.slack.com/services/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"
 
 if ([string]::IsNullOrWhiteSpace($webhook)) {
     throw "Slack webhook is not configured."
 }
 
 # ------------------------------------------
-# 3. Birthday CSV Path
+# 3. Birthday CSV Path (Azure DevOps Pipeline Path)
 # ------------------------------------------
-$csvPath = Join-Path $env:System_DefaultWorkingDirectory "Birthday_notification.csv"
+$csvPath = Join-Path $env:Build_SourcesDirectory "Birthday_notification.csv"
 
 Write-Output "=========================================="
 Write-Output "Birthday Notification Started"
@@ -42,7 +42,7 @@ Write-Output "=========================================="
 Write-Output "CSV Path: $csvPath"
 
 if (-not (Test-Path $csvPath)) {
-    throw "Birthday CSV file not found: $csvPath"
+    throw "Birthday CSV file not found at: $csvPath"
 }
 
 $birthdays = Import-Csv $csvPath
@@ -51,7 +51,7 @@ $birthdays = Import-Csv $csvPath
 # 4. Current Date
 # ------------------------------------------
 $currentDate = (Get-Date).Date
-Write-Output "Today's Date: $($currentDate.ToString('dd MMM yyyy'))"
+Write-Output "Today's Date: $($currentDate.ToString('dd-MM-yyyy'))"
 
 # ------------------------------------------
 # 5. Find Today's Birthdays
@@ -62,7 +62,8 @@ $todayBirthdays = @(
             return $false
         }
         try {
-            $birthday = Get-Date $_.Birthday
+            # CSV के dd-MM-yyyy फॉर्मेट के अनुसार पार्सिंग
+            $birthday = [datetime]::ParseExact($_.Birthday, "dd-MM-yyyy", $null)
         }
         catch {
             return $false
@@ -77,7 +78,7 @@ Write-Output "Today's Birthdays Found: $($todayBirthdays.Count)"
 # 6. Stop if No Birthday
 # ------------------------------------------
 if ($todayBirthdays.Count -eq 0) {
-    Write-Output "No birthdays today."
+    Write-Output "No birthdays today in the CSV file."
     Write-Output "No email or Slack notification required."
     exit 0
 }
@@ -94,10 +95,9 @@ $confetti = [char]::ConvertFromUtf32(0x1F38A) # 🎊
 # ------------------------------------------
 # 8. Build Slack Message
 # ------------------------------------------
-$msg = "$cake Birthday Celebrations Today! $cake`n`n"
+$msg = "$cake *Birthday Celebrations Today!* $cake`n`n"
 foreach ($b in $todayBirthdays) {
-    $dateFull = (Get-Date $b.Birthday).ToString("dd MMM yyyy")
-    $msg += "$sparkles $dateFull -> $($b.Name) $party Happy Birthday! $cake`n"
+    $msg += "$sparkles *$($b.Name)* $party Happy Birthday! $cake`n"
     $msg += "$pray God bless you! $confetti Many happy returns of the day! $confetti`n`n"
 }
 
@@ -105,7 +105,6 @@ foreach ($b in $todayBirthdays) {
 # 9. Send Gmail Notification
 # ------------------------------------------
 foreach ($b in $todayBirthdays) {
-    $dateFull = (Get-Date $b.Birthday).ToString("dd MMM yyyy")
     $subject = "Birthday Reminder: $($b.Name)"
 
     $body = @"
@@ -114,7 +113,6 @@ foreach ($b in $todayBirthdays) {
 <body>
 <h2>$cake Birthday Reminder $cake</h2>
 <p>Today is <strong>$($b.Name)'s Birthday!</strong> $party</p>
-<p>$sparkles Birthday: <strong>$dateFull</strong></p>
 <p>$confetti <strong>Happy Birthday!</strong> $confetti</p>
 </body>
 </html>
@@ -140,7 +138,7 @@ foreach ($b in $todayBirthdays) {
 }
 
 # ------------------------------------------
-# 10. Send Slack Notification (फिक्स किया हुआ कॉम्पैटिबल कमांड)
+# 10. Send Slack Notification
 # ------------------------------------------
 Write-Output "Sending notification to Slack..."
 try {
@@ -150,10 +148,10 @@ try {
     $response = Invoke-RestMethod `
         -Uri $webhook `
         -Method Post `
-        -Body ([System.Text.Encoding]::UTF8.GetBytes($jsonPayload)) `
-        -ContentType "application/json; charset=utf-8"
+        -Body $jsonPayload `
+        -ContentType "application/json"
         
-    Write-Output "Slack notification status: $response"
+    Write-Output "Slack response: $response"
 }
 catch {
     Write-Warning "Failed to send Slack notification: $_"
