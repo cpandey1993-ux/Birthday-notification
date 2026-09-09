@@ -32,7 +32,7 @@ if ([string]::IsNullOrWhiteSpace($webhook)) {
 }
 
 # ------------------------------------------
-# 3. Birthday CSV
+# 3. Birthday CSV Path
 # ------------------------------------------
 $csvPath = Join-Path $env:System_DefaultWorkingDirectory "Birthday_notification.csv"
 
@@ -140,16 +140,19 @@ foreach ($b in $todayBirthdays) {
 }
 
 # ------------------------------------------
-# 10. Send Slack Notification (यह रहा स्लैक पर डिलीवर करने का फंक्शन)
+# 10. Send Slack Notification (फिक्स किया हुआ कॉम्पैटिबल कमांड)
 # ------------------------------------------
 Write-Output "Sending notification to Slack..."
 try {
-    $jsonPayload = @{ text = $msg } | ConvertTo-Json -EnforceArray
+    $payloadObject = @{ text = $msg }
+    $jsonPayload = $payloadObject | ConvertTo-Json -Compress
+    
     $response = Invoke-RestMethod `
         -Uri $webhook `
         -Method Post `
-        -Body $jsonPayload `
+        -Body ([System.Text.Encoding]::UTF8.GetBytes($jsonPayload)) `
         -ContentType "application/json; charset=utf-8"
+        
     Write-Output "Slack notification status: $response"
 }
 catch {
