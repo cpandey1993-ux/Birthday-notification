@@ -4,9 +4,9 @@
 # ==========================================
 
 # ------------------------------------------
-# 1. Gmail SMTP Configuration
+# 1. Gmail SMTP Configuration (SERVER FIXED)
 # ------------------------------------------
-$smtpServer = "://gmail.com"
+$smtpServer = "smtp.gmail.com"  # यहाँ सर्वर सही कर दिया गया है
 $smtpPort   = 587
 
 $from = "cpandey1993@gmail.com"
@@ -16,19 +16,19 @@ $to   = "cpandey1993@gmail.com"
 $appPassword = $env:GMAIL_APP_PASSWORD
 
 if ([string]::IsNullOrWhiteSpace($appPassword)) {
-    throw "GMAIL_APP_PASSWORD is not configured."
+    throw "GMAIL_APP_PASSWORD environment variable is not configured."
 }
 
 $securePassword = ConvertTo-SecureString $appPassword -AsPlainText -Force
 $cred = New-Object System.Management.Automation.PSCredential($from, $securePassword)
 
 # ------------------------------------------
-# 2. Slack Webhook (यहाँ आपका असली URL पूरी तरह सेट है)
+# 2. Slack Webhook (सुरक्षित वेरिएबल - गिटहब ब्लॉक नहीं करेगा)
 # ------------------------------------------
-$webhook = "https://hooks.slack.com/services/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"
+$webhook = $env:SLACK_WEBHOOK_URL
 
 if ([string]::IsNullOrWhiteSpace($webhook)) {
-    throw "Slack webhook is not configured."
+    throw "SLACK_WEBHOOK_URL environment variable is not configured."
 }
 
 # ------------------------------------------
@@ -62,7 +62,6 @@ $todayBirthdays = @(
             return $false
         }
         try {
-            # CSV के dd-MM-yyyy फॉर्मेट के अनुसार पार्सिंग
             $birthday = [datetime]::ParseExact($_.Birthday, "dd-MM-yyyy", $null)
         }
         catch {
